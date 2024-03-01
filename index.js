@@ -1,9 +1,8 @@
 const express = require("express");
 const {
   selectAll,
-  columnSelect,
   getQuestionsOnTopics,
-  processQuestions
+  processQuestions,
 } = require("./database/sqlmods");
 const {
   queryDB,
@@ -15,16 +14,19 @@ const {
   deleteQuestion,
   getCategories,
   createCategory,
-  removeCategory
+  removeCategory,
+  getExamQuestions,
+  getQuestionsCount,
 } = require("./database/sqlqueries");
+
 var cors = require("cors");
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json({ limit: "200mb" }));
 
 app.post("/question/categories", async (request, response) => {
   let res;
@@ -40,19 +42,36 @@ app.get("/question/categories", async (request, response) => {
   let categories = await getCategories();
   response.json(categories);
 });
-
-app.get("/questions", async (request, response) => {
-  let categories = await getCategories();
-  let res = await queryDB(getQuestionsOnTopics(categories));
-  response.json(processQuestions(res, categories));
+app.get("/count", async (request, response) => {
+  let questionCount = await getQuestionsCount(request.query);
+  response.json(questionCount);
 });
+app.get("/questions", async (request, response) => {
+  try {
+    let categories = await getCategories();
+    console.log(request.query);
 
+    let res = await queryDB(getQuestionsOnTopics(categories, request.query));
+    response.json(processQuestions(res, categories));
+  } catch (error) {
+    response.json(error);
+  }
+});
+app.post("/questions", async (request, response) => {
+  let success = 0;
+  request.body.forEach(async (element) => {
+    let res = await insertQuestion(element);
+    success++;
+  });
+  console.log(success);
+  response.json(success);
+});
 app.post("/question", async (request, response) => {
   let res = await insertQuestion(request.body);
   console.log(res);
   response.json(res);
 });
-app.post("/question/update", async (request, response) => {
+app.put("/question", async (request, response) => {
   let res = await updateQuestion(request.body);
   console.log(res);
   response.json(res);
@@ -67,9 +86,14 @@ app.post("/category", async (request, response) => {
   response.json(res);
 });
 app.put("/category", async (request, response) => {
-  let res = await updateTopic(request.body, request.body.type);
-  console.log(res);
-  response.json(res);
+  console.log(request.body);
+  try {
+    let res = await updateTopic(request.body, request.body.type);
+    console.log(res);
+    response.json(res);
+  } catch (error) {
+    response.json(error);
+  }
 });
 app.get("/category", async (request, response) => {
   console.log(request.body);
@@ -80,6 +104,10 @@ app.get("/category", async (request, response) => {
 app.delete("/category", async (request, response) => {
   let res = await deleteTopic(request.query.ID, request.body.type);
   console.log(res);
+  response.json(res);
+});
+app.post("/exam", async (request, response) => {
+  let res = await getExamQuestions(request.body);
   response.json(res);
 });
 
