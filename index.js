@@ -42,6 +42,11 @@ app.get("/question/categories", async (request, response) => {
   let categories = await getCategories();
   response.json(categories);
 });
+app.get("/test", async (request, response) => {
+  response.json({
+    data: "Okay This seems to be working",
+  });
+});
 app.get("/count", async (request, response) => {
   let questionCount = await getQuestionsCount(request.query);
   response.json(questionCount);
